@@ -1,0 +1,201 @@
+//FarmerContract.sol
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
+
+contract FarmerContract {
+    struct Batch {
+        uint256 batchID;
+        string cropName;
+        uint256 quantity;
+        uint256 timestamp;
+        address farmer;
+    }
+
+    mapping(uint256 => Batch) public batches;
+
+    event BatchCreated(
+        uint256 batchID,
+        string cropName,
+        uint256 quantity,
+        uint256 timestamp,
+        address farmer
+    );
+
+    function addBatch(uint256 _batchID, string memory _cropName, uint256 _quantity) public {
+        batches[_batchID] = Batch(_batchID, _cropName, _quantity, block.timestamp, msg.sender);
+        emit BatchCreated(_batchID, _cropName, _quantity, block.timestamp, msg.sender);
+    }
+
+    function getBatch(uint256 _batchID) public view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address
+    ) {
+        Batch memory b = batches[_batchID];
+        return (b.batchID, b.cropName, b.quantity, b.timestamp, b.farmer);
+
+
+
+//DistributorContract.sol
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
+
+interface IFarmerContract {
+    function getBatch(uint256 _batchID) external view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address
+    );
+}
+
+contract DistributorContract {
+    IFarmerContract public farmerContract;
+
+    struct ReceivedBatch {
+        uint256 batchID;
+        string cropName;
+        uint256 quantity;
+        uint256 timestamp;
+        address farmer;
+        address distributor;
+    }
+
+    mapping(uint256 => ReceivedBatch) public receivedBatches;
+
+    constructor(address _farmerContractAddress) {
+        farmerContract = IFarmerContract(_farmerContractAddress);
+    }
+
+    function receiveBatch(uint256 _batchID) public {
+        (uint256 id, string memory crop, uint256 qty, , address farmer) = farmerContract.getBatch(_batchID);
+        receivedBatches[_batchID] = ReceivedBatch(id, crop, qty, block.timestamp, farmer, msg.sender);
+    }
+
+    function getReceivedBatch(uint256 _batchID) public view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address,
+        address
+    ) {
+        ReceivedBatch memory rb = receivedBatches[_batchID];
+        return (rb.batchID, rb.cropName, rb.quantity, rb.timestamp, rb.farmer, rb.distributor);
+    }
+}
+
+
+//RetailerContract.sol
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
+
+interface IDistributorContract {
+    function getReceivedBatch(uint256 _batchID) external view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address,
+        address
+    );
+}
+
+contract RetailerContract {
+    IDistributorContract public distributorContract;
+
+    struct RetailBatch {
+        uint256 batchID;
+        string cropName;
+        uint256 quantity;
+        uint256 timestamp;
+        address farmer;
+        address distributor;
+        address retailer;
+    }
+
+    mapping(uint256 => RetailBatch) public retailBatches;
+
+    constructor(address _distributorContractAddress) {
+        distributorContract = IDistributorContract(_distributorContractAddress);
+    }
+
+    function receiveFromDistributor(uint256 _batchID) public {
+        (uint256 id, string memory crop, uint256 qty, , address farmer, address distributor) = distributorContract.getReceivedBatch(_batchID);
+        retailBatches[_batchID] = RetailBatch(id, crop, qty, block.timestamp, farmer, distributor, msg.sender);
+    }
+
+    function getRetailBatch(uint256 _batchID) public view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address,
+        address,
+        address
+    ) {
+        RetailBatch memory rtb = retailBatches[_batchID];
+        return (rtb.batchID, rtb.cropName, rtb.quantity, rtb.timestamp, rtb.farmer, rtb.distributor, rtb.retailer);
+    }
+}
+
+//CustomerContract.sol
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
+
+interface IRetailerContract {
+    function getRetailBatch(uint256 _batchID) external view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address,
+        address,
+        address
+    );
+}
+
+contract CustomerContract {
+    IRetailerContract public retailerContract;
+
+    struct PurchasedBatch {
+        uint256 batchID;
+        string cropName;
+        uint256 quantity;
+        uint256 timestamp;
+        address farmer;
+        address distributor;
+        address retailer;
+        address customer;
+    }
+
+    mapping(uint256 => PurchasedBatch) public purchasedBatches;
+
+    constructor(address _retailerContractAddress) {
+        retailerContract = IRetailerContract(_retailerContractAddress);
+    }
+
+    function purchaseFromRetailer(uint256 _batchID) public {
+        (uint256 id, string memory crop, uint256 qty, , address farmer, address distributor, address retailer) = retailerContract.getRetailBatch(_batchID);
+        purchasedBatches[_batchID] = PurchasedBatch(id, crop, qty, block.timestamp, farmer, distributor, retailer, msg.sender);
+    }
+
+    function getPurchasedBatch(uint256 _batchID) public view returns (
+        uint256,
+        string memory,
+        uint256,
+        uint256,
+        address,
+        address,
+        address,
+        address
+    ) {
+        PurchasedBatch memory pb = purchasedBatches[_batchID];
+        return (pb.batchID, pb.cropName, pb.quantity, pb.timestamp, pb.farmer, pb.distributor, pb.retailer, pb.customer);
+    }
+}
+    }
+}
